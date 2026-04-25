@@ -887,20 +887,16 @@
 
 <script>
   // ─────────────────────────────────────────────
-  // MAILCHIMP CONFIGURATION
-  // Replace these three values with your own:
+  // LOOPS CONFIGURATION
+  // Takes 2 minutes to set up:
   //
-  // 1. Go to mailchimp.com → Audience → Signup forms → Embedded forms
-  // 2. Copy the form action URL — it looks like:
-  //    https://yourdomain.us21.list-manage.com/subscribe/post?u=XXXXXXXX&amp;id=YYYYYYYY
-  // 3. From that URL, fill in:
-  //    MC_DC   = the part before .list-manage.com  (e.g. "us21")
-  //    MC_U    = the u= value                      (e.g. "abc123def456")
-  //    MC_ID   = the id= value                     (e.g. "aa11bb22cc")
+  // 1. Sign up at loops.so (free)
+  // 2. Go to Forms → Create Form → pick "Hosted or custom form"
+  // 3. Publish the form — you'll see an embed snippet like:
+  //    <form action="https://app.loops.so/api/newsletter-form/XXXXXXXXXX" ...>
+  // 4. Copy that ID (the last part of the URL) and paste it below:
   // ─────────────────────────────────────────────
-  const MC_DC = 'us1';           // ← your datacenter
-  const MC_U  = '767162eacb6549c4a25711cc9';   // ← your u= param
-  const MC_ID = 'fbd5bce241';   // ← your id= param
+  const LOOPS_FORM_ID = 'cmoe11ehb0z2w0i01xw47jsxk'; // ← paste your Loops form ID here
   // ─────────────────────────────────────────────
 
   // Scroll reveal
@@ -933,9 +929,9 @@
   }, { threshold: 0.5 });
   countObserver.observe(countEl);
 
-  // ── Mailchimp JSONP subscribe ──
+  // ── Helpers ──
   function setLoading(on) {
-    document.getElementById('btn-label').style.display  = on ? 'none'         : 'inline';
+    document.getElementById('btn-label').style.display   = on ? 'none'         : 'inline';
     document.getElementById('btn-spinner').style.display = on ? 'inline-block' : 'none';
     document.getElementById('submit-btn').disabled = on;
   }
@@ -951,11 +947,9 @@
   }
 
   function showSuccess() {
-    const form = document.getElementById('form-container');
+    const form    = document.getElementById('form-container');
     const success = document.getElementById('success-msg');
-    form.style.opacity = '0';
-    form.style.transform = 'translateY(-8px)';
-    form.style.transition = 'all 0.3s ease';
+    form.style.cssText += 'opacity:0;transform:translateY(-8px);transition:all 0.3s ease;';
     setTimeout(() => {
       form.style.display = 'none';
       success.classList.add('show', 'visible');
@@ -964,55 +958,44 @@
     }, 300);
   }
 
-  function handleWaitlist(e) {
+  // ── Loops subscribe via fetch ──
+  async function handleWaitlist(e) {
     e.preventDefault();
     hideError();
 
     const email = document.getElementById('email-input').value.trim();
     if (!email) return;
 
-    // Warn if placeholder values haven't been replaced
-    if (MC_U === 'YOUR_U_VALUE' || MC_ID === 'YOUR_LIST_ID') {
-      showError('⚠ Mailchimp not configured yet. Open the HTML file and fill in MC_U, MC_ID, and MC_DC.');
+    if (LOOPS_FORM_ID === 'YOUR_FORM_ID') {
+      showError('⚠ Loops not configured yet — open the HTML file and paste your LOOPS_FORM_ID.');
       return;
     }
 
     setLoading(true);
 
-    // Mailchimp's public JSONP endpoint — same one their own embeds use.
-    // No API key required; uses your audience's public form credentials.
-    const url = `https://${MC_DC}.list-manage.com/subscribe/post-json`
-              + `?u=${MC_U}&id=${MC_ID}&EMAIL=${encodeURIComponent(email)}&c=mcCallback`;
+    try {
+      const res = await fetch(`https://app.loops.so/api/newsletter-form/${LOOPS_FORM_ID}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ email })
+      });
 
-    // Inject a <script> tag to fire the JSONP request
-    const script = document.createElement('script');
-    script.src = url;
-    document.body.appendChild(script);
+      const data = await res.json();
 
-    // Timeout fallback (10s)
-    const timeout = setTimeout(() => {
-      setLoading(false);
-      showError('Request timed out. Please try again.');
-      document.body.removeChild(script);
-    }, 10000);
-
-    // Mailchimp calls window.mcCallback with the result
-    window.mcCallback = function(data) {
-      clearTimeout(timeout);
-      setLoading(false);
-      try { document.body.removeChild(script); } catch(_) {}
-
-      if (data.result === 'success') {
+      if (data.success) {
         showSuccess();
       } else {
-        // Mailchimp returns HTML in the msg field; strip tags for display
-        const clean = data.msg.replace(/<[^>]+>/g, '').replace(/^\d+ - /, '');
-        showError(clean || 'Something went wrong. Please try again.');
+        // Loops returns { success: false, message: "..." }
+        showError(data.message || 'Something went wrong. Please try again.');
       }
-    };
+    } catch (err) {
+      showError('Network error — please check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  // Spinner CSS
+  // Spinner keyframe
   const style = document.createElement('style');
   style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
   document.head.appendChild(style);
