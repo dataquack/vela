@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VELA — Your AI Intelligence Layer</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #070707;
+    --bg2: #0f0f0e;
+    --bg3: #161614;
+    --cream: #F2EDE3;
+    --cream-dim: #9C9488;
+    --cream-faint: #3A3832;
+    --accent: #C97A44;
+    --accent-light: #E09A64;
+    --accent-glow: rgba(201, 122, 68, 0.12);
+    --border: rgba(242, 237, 227, 0.08);
+    --border-accent: rgba(201, 122, 68, 0.3);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 1.5rem 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(7,7,7,0.85);
+    backdrop-filter: blur(20px);
+  }
+
+  .logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    color: var(--cream);
+    text-decoration: none;
+  }
+
+  .logo span { color: var(--accent); }
+
+  nav ul {
+    list-style: none;
+    display: flex;
+    gap: 2.5rem;
+    align-items: center;
+  }
+
+  nav a {
+    color: var(--cream-dim);
+    text-decoration: none;
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  nav a:hover { color: var(--cream); }
+
+  .nav-cta {
+    color: var(--accent) !important;
+    border: 1px solid var(--border-accent);
+    padding: 0.45rem 1.2rem;
+    border-radius: 2px;
+    transition: all 0.2s !important;
+  }
+
+  .nav-cta:hover {
+    background: var(--accent-glow) !important;
+    color: var(--accent-light) !important;
+  }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 3rem 5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(12rem, 30vw, 26rem);
+    font-weight: 300;
+    color: rgba(242, 237, 227, 0.025);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    animation: drift 12s ease-in-out infinite alternate;
+  }
+
+  @keyframes drift {
+    from { transform: translate(-50%, -50%) scale(1); }
+    to   { transform: translate(-50%, -51%) scale(1.02); }
+  }
+
+  .hero-tag {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.2s forwards;
+  }
+
+  .hero-tag::before {
+    content: '';
+    display: block;
+    width: 2rem;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(3.5rem, 9vw, 8rem);
+    font-weight: 300;
+    line-height: 1.0;
+    letter-spacing: -0.01em;
+    max-width: 900px;
+    opacity: 0;
+    animation: fadeUp 0.9s ease 0.4s forwards;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    margin-top: 2rem;
+    max-width: 480px;
+    color: var(--cream-dim);
+    font-size: 0.95rem;
+    line-height: 1.75;
+    opacity: 0;
+    animation: fadeUp 0.9s ease 0.6s forwards;
+  }
+
+  .hero-actions {
+    margin-top: 2.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    opacity: 0;
+    animation: fadeUp 0.9s ease 0.8s forwards;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    padding: 0.85rem 2rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-light);
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--cream-dim);
+    border: 1px solid var(--border);
+    padding: 0.85rem 2rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+  }
+
+  .btn-ghost:hover {
+    color: var(--cream);
+    border-color: rgba(242, 237, 227, 0.25);
+  }
+
+  .hero-scroll {
+    position: absolute;
+    bottom: 2rem;
+    right: 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0;
+    animation: fadeIn 1s ease 1.4s forwards;
+  }
+
+  .hero-scroll span {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cream-faint);
+    writing-mode: vertical-rl;
+  }
+
+  .scroll-line {
+    width: 1px;
+    height: 3rem;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.4; transform: scaleY(1); }
+    50% { opacity: 1; transform: scaleY(1.2); }
+  }
+
+  /* MARQUEE */
+  .marquee-wrap {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 0;
+    overflow: hidden;
+    background: var(--bg2);
+  }
+
+  .marquee-track {
+    display: flex;
+    gap: 3rem;
+    animation: marquee 24s linear infinite;
+    white-space: nowrap;
+    width: max-content;
+  }
+
+  .marquee-track span {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    display: flex;
+    align-items: center;
+    gap: 3rem;
+  }
+
+  .marquee-dot {
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* SECTION STRUCTURE */
+  section {
+    position: relative;
+    z-index: 1;
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .section-label::before {
+    content: '';
+    display: block;
+    width: 1.5rem;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  /* CAPABILITIES */
+  #capabilities {
+    padding: 8rem 3rem;
+    background: var(--bg);
+  }
+
+  .caps-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: end;
+    margin-bottom: 5rem;
+  }
+
+  .caps-header h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 300;
+    line-height: 1.1;
+  }
+
+  .caps-header p {
+    color: var(--cream-dim);
+    font-size: 0.9rem;
+    line-height: 1.8;
+    max-width: 400px;
+    align-self: end;
+  }
+
+  .caps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .cap-card {
+    background: var(--bg);
+    padding: 2.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+
+  .cap-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent-glow);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .cap-card:hover::before { opacity: 1; }
+  .cap-card:hover { background: var(--bg2); }
+
+  .cap-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 3rem;
+    font-weight: 300;
+    color: var(--cream-faint);
+    line-height: 1;
+    margin-bottom: 1.5rem;
+  }
+
+  .cap-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+  }
+
+  .cap-card p {
+    color: var(--cream-dim);
+    font-size: 0.85rem;
+    line-height: 1.7;
+  }
+
+  .cap-icon {
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: var(--accent);
+    transition: all 0.2s;
+  }
+
+  .cap-card:hover .cap-icon {
+    border-color: var(--border-accent);
+    background: var(--accent-glow);
+  }
+
+  /* HOW IT WORKS */
+  #how {
+    padding: 8rem 3rem;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+  }
+
+  .how-inner {
+    max-width: 1100px;
+  }
+
+  .how-inner h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2.5rem, 4vw, 3.5rem);
+    font-weight: 300;
+    margin-bottom: 4rem;
+    max-width: 600px;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
+  }
+
+  .step {
+    position: relative;
+  }
+
+  .step::after {
+    content: '→';
+    position: absolute;
+    top: 0;
+    right: -1.5rem;
+    color: var(--cream-faint);
+    font-size: 1.2rem;
+  }
+
+  .step:last-child::after { display: none; }
+
+  .step-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 4rem;
+    font-weight: 300;
+    color: var(--accent);
+    opacity: 0.4;
+    line-height: 1;
+    margin-bottom: 1rem;
+  }
+
+  .step h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .step p {
+    color: var(--cream-dim);
+    font-size: 0.85rem;
+    line-height: 1.7;
+  }
+
+  /* WAITLIST */
+  #waitlist {
+    padding: 8rem 3rem;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+
+  .waitlist-inner {
+    max-width: 680px;
+  }
+
+  .waitlist-inner h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    font-weight: 300;
+    line-height: 1.05;
+    margin-bottom: 1.5rem;
+  }
+
+  .waitlist-inner h2 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .waitlist-inner > p {
+    color: var(--cream-dim);
+    font-size: 0.9rem;
+    line-height: 1.75;
+    margin-bottom: 3rem;
+    max-width: 500px;
+  }
+
+  .waitlist-form {
+    display: flex;
+    gap: 0;
+    max-width: 520px;
+  }
+
+  .waitlist-form input[type="email"] {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-right: none;
+    padding: 0.9rem 1.25rem;
+    color: var(--cream);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    border-radius: 2px 0 0 2px;
+    transition: border-color 0.2s;
+  }
+
+  .waitlist-form input[type="email"]::placeholder {
+    color: var(--cream-faint);
+  }
+
+  .waitlist-form input[type="email"]:focus {
+    border-color: var(--border-accent);
+  }
+
+  .waitlist-form button {
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    padding: 0.9rem 1.75rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 0 2px 2px 0;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .waitlist-form button:hover { background: var(--accent-light); }
+
+  .waitlist-success {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: rgba(201, 122, 68, 0.08);
+    border: 1px solid var(--border-accent);
+    border-radius: 2px;
+    max-width: 520px;
+  }
+
+  .waitlist-success.show { display: flex; }
+
+  .success-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.8rem;
+    color: #0a0a0a;
+  }
+
+  .waitlist-success p {
+    font-size: 0.85rem;
+    color: var(--cream-dim);
+    line-height: 1.5;
+  }
+
+  .waitlist-success strong { color: var(--cream); font-weight: 600; }
+
+  .waitlist-meta {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 2rem;
+  }
+
+  .waitlist-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .waitlist-meta-item strong {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem;
+    font-weight: 300;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .waitlist-meta-item span {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+  }
+
+  /* FOOTER */
+  footer {
+    padding: 3rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+  }
+
+  footer .logo { font-size: 1.2rem; }
+
+  footer p {
+    color: var(--cream-faint);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+
+  footer nav ul {
+    gap: 1.5rem;
+  }
+
+  footer nav a {
+    font-size: 0.72rem;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    nav { padding: 1.25rem 1.5rem; }
+    nav ul { display: none; }
+    .hero { padding: 0 1.5rem 4rem; }
+    .hero-bg-text { font-size: 8rem; }
+    .hero-scroll { display: none; }
+    #capabilities { padding: 5rem 1.5rem; }
+    .caps-header { grid-template-columns: 1fr; gap: 1.5rem; }
+    .caps-grid { grid-template-columns: 1fr; }
+    #how { padding: 5rem 1.5rem; }
+    .steps { grid-template-columns: 1fr; gap: 2rem; }
+    .step::after { display: none; }
+    #waitlist { padding: 5rem 1.5rem; }
+    .waitlist-form { flex-direction: column; }
+    .waitlist-form input[type="email"] { border-right: 1px solid var(--border); border-bottom: none; border-radius: 2px 2px 0 0; }
+    .waitlist-form button { border-radius: 0 0 2px 2px; }
+    footer { flex-direction: column; gap: 1.5rem; text-align: center; padding: 2rem 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">VEL<span>A</span></a>
+  <ul>
+    <li><a href="#capabilities">Capabilities</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#waitlist" class="nav-cta">Join waitlist</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg-text">VELA</div>
+  <div class="hero-tag">Intelligent assistance, redefined</div>
+  <h1>Think it.<br>Ask it.<br><em>Done.</em></h1>
+  <p class="hero-sub">VELA is your always-on AI intelligence layer — writing, researching, coding, analyzing, and creating on your behalf. Whatever you can think, VELA delivers.</p>
+  <div class="hero-actions">
+    <a href="#waitlist" class="btn-primary">Join the waitlist</a>
+    <a href="#capabilities" class="btn-ghost">See capabilities</a>
+  </div>
+  <div class="hero-scroll">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <span>Writing & Editing <span class="marquee-dot"></span></span>
+    <span>Research & Analysis <span class="marquee-dot"></span></span>
+    <span>Code Generation <span class="marquee-dot"></span></span>
+    <span>Data Interpretation <span class="marquee-dot"></span></span>
+    <span>Strategic Planning <span class="marquee-dot"></span></span>
+    <span>Creative Content <span class="marquee-dot"></span></span>
+    <span>Document Summaries <span class="marquee-dot"></span></span>
+    <span>Brainstorming <span class="marquee-dot"></span></span>
+    <span>Writing & Editing <span class="marquee-dot"></span></span>
+    <span>Research & Analysis <span class="marquee-dot"></span></span>
+    <span>Code Generation <span class="marquee-dot"></span></span>
+    <span>Data Interpretation <span class="marquee-dot"></span></span>
+    <span>Strategic Planning <span class="marquee-dot"></span></span>
+    <span>Creative Content <span class="marquee-dot"></span></span>
+    <span>Document Summaries <span class="marquee-dot"></span></span>
+    <span>Brainstorming <span class="marquee-dot"></span></span>
+  </div>
+</div>
+
+<!-- CAPABILITIES -->
+<section id="capabilities">
+  <div class="caps-header reveal">
+    <div>
+      <div class="section-label">Capabilities</div>
+      <h2>Six pillars.<br>Infinite use cases.</h2>
+    </div>
+    <p>VELA handles the full spectrum of intellectual work — from a single sentence to a complete strategy. It thinks with you, not just for you.</p>
+  </div>
+
+  <div class="caps-grid">
+    <div class="cap-card reveal">
+      <div class="cap-num">01</div>
+      <h3>Write & Edit</h3>
+      <p>Drafts, reports, emails, scripts, copy — polished prose at the speed of thought. Ask for a tweet or a whitepaper; VELA delivers both flawlessly.</p>
+      <div class="cap-icon">✦</div>
+    </div>
+    <div class="cap-card reveal">
+      <div class="cap-num">02</div>
+      <h3>Research & Synthesize</h3>
+      <p>Deep dives into any topic. VELA reads, connects, and surfaces exactly what matters — so you make better decisions with less noise.</p>
+      <div class="cap-icon">✦</div>
+    </div>
+    <div class="cap-card reveal">
+      <div class="cap-num">03</div>
+      <h3>Build & Code</h3>
+      <p>Generate, review, debug, and explain code across any language. From a one-liner to a full application scaffold — VELA codes beside you.</p>
+      <div class="cap-icon">✦</div>
+    </div>
+    <div class="cap-card reveal">
+      <div class="cap-num">04</div>
+      <h3>Analyze & Interpret</h3>
+      <p>Hand VELA a document, dataset, or idea and get back clear insight. Patterns emerge. Decisions clarify.</p>
+      <div class="cap-icon">✦</div>
+    </div>
+    <div class="cap-card reveal">
+      <div class="cap-num">05</div>
+      <h3>Create & Imagine</h3>
+      <p>Brainstorm campaigns, conceive stories, develop personas, invent names. VELA is a creative partner that never runs dry.</p>
+      <div class="cap-icon">✦</div>
+    </div>
+    <div class="cap-card reveal">
+      <div class="cap-num">06</div>
+      <h3>Plan & Strategize</h3>
+      <p>Turn vague goals into structured plans. Roadmaps, frameworks, priorities — VELA thinks strategically so you can move decisively.</p>
+      <div class="cap-icon">✦</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="how-inner">
+    <div class="reveal">
+      <div class="section-label">Process</div>
+      <h2>Impossibly simple.<br>Surprisingly powerful.</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">1</div>
+        <h3>Ask anything</h3>
+        <p>Type naturally. No templates, no forms. VELA understands intent and context from the first word — speak to it like a brilliant colleague.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">2</div>
+        <h3>VELA thinks</h3>
+        <p>In seconds, VELA processes your request with deep reasoning — drawing on vast knowledge to craft a response that's exactly what you needed.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">3</div>
+        <h3>Use and refine</h3>
+        <p>Get your answer, or keep the conversation going. Iterate, expand, push further. VELA remembers the thread and grows with your project.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WAITLIST -->
+<section id="waitlist">
+  <div class="waitlist-inner">
+    <div class="reveal">
+      <div class="section-label">Early Access</div>
+      <h2>Be first to<br><em>navigate</em> the future.</h2>
+      <p>We're opening VELA to a select group of early users. Join the waitlist and get exclusive first access, founding member pricing, and a direct line to our team.</p>
+    </div>
+
+    <div class="reveal" id="form-container">
+      <form class="waitlist-form" onsubmit="handleWaitlist(event)">
+        <input type="email" id="email-input" placeholder="Enter your email address" required>
+        <button type="submit">Reserve my spot</button>
+      </form>
+    </div>
+
+    <div class="waitlist-success reveal" id="success-msg">
+      <div class="success-icon">✓</div>
+      <p><strong>You're on the list.</strong> We'll be in touch soon with early access details. Welcome to VELA.</p>
+    </div>
+
+    <div class="waitlist-meta reveal">
+      <div class="waitlist-meta-item">
+        <strong id="count">247</strong>
+        <span>On waitlist</span>
+      </div>
+      <div class="waitlist-meta-item">
+        <strong>48h</strong>
+        <span>Avg. response time</span>
+      </div>
+      <div class="waitlist-meta-item">
+        <strong>Free</strong>
+        <span>Early access tier</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <a href="#" class="logo">VEL<span>A</span></a>
+  <p>© 2026 VELA Intelligence. All rights reserved.</p>
+  <nav>
+    <ul>
+      <li><a href="#">Privacy</a></li>
+      <li><a href="#">Terms</a></li>
+      <li><a href="#">Contact</a></li>
+    </ul>
+  </nav>
+</footer>
+
+<script>
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 60);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  reveals.forEach(el => observer.observe(el));
+
+  // Waitlist counter (simulate growth)
+  let baseCount = 247;
+  function animateCount() {
+    const el = document.getElementById('count');
+    let current = 0;
+    const target = baseCount;
+    const step = Math.ceil(target / 60);
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = current;
+      if (current >= target) clearInterval(timer);
+    }, 20);
+  }
+
+  const countEl = document.getElementById('count');
+  const countObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) { animateCount(); countObserver.unobserve(countEl); }
+  }, { threshold: 0.5 });
+  countObserver.observe(countEl);
+
+  // Waitlist submit
+  function handleWaitlist(e) {
+    e.preventDefault();
+    const email = document.getElementById('email-input').value;
+    const form = document.getElementById('form-container');
+    const success = document.getElementById('success-msg');
+    const countEl = document.getElementById('count');
+
+    // Store in localStorage as a simple waitlist
+    const list = JSON.parse(localStorage.getItem('vela_waitlist') || '[]');
+    if (!list.includes(email)) {
+      list.push(email);
+      localStorage.setItem('vela_waitlist', JSON.stringify(list));
+      baseCount = 247 + list.length;
+      countEl.textContent = baseCount;
+    }
+
+    form.style.opacity = '0';
+    form.style.transform = 'translateY(-8px)';
+    form.style.transition = 'all 0.3s ease';
+    setTimeout(() => {
+      form.style.display = 'none';
+      success.classList.add('show', 'visible');
+    }, 300);
+  }
+
+  // Load existing count
+  window.addEventListener('load', () => {
+    const list = JSON.parse(localStorage.getItem('vela_waitlist') || '[]');
+    baseCount = 247 + list.length;
+  });
+</script>
+</body>
+</html>
