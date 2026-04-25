@@ -836,10 +836,18 @@
     </div>
 
     <div class="reveal" id="form-container">
-      <form class="waitlist-form" onsubmit="handleWaitlist(event)">
-        <input type="email" id="email-input" placeholder="Enter your email address" required>
-        <button type="submit">Reserve my spot</button>
+      <form class="waitlist-form" onsubmit="handleWaitlist(event)" novalidate>
+        <input type="email" id="email-input" placeholder="Enter your email address" required autocomplete="email">
+        <button type="submit" id="submit-btn">
+          <span id="btn-label">Reserve my spot</span>
+          <span id="btn-spinner" style="display:none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 0.8s linear infinite;vertical-align:middle;">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+          </span>
+        </button>
       </form>
+      <div id="error-msg" style="display:none;margin-top:0.75rem;font-size:0.8rem;color:#E09A64;"></div>
     </div>
 
     <div class="waitlist-success reveal" id="success-msg">
@@ -878,69 +886,136 @@
 </footer>
 
 <script>
+  // ─────────────────────────────────────────────
+  // MAILCHIMP CONFIGURATION
+  // Replace these three values with your own:
+  //
+  // 1. Go to mailchimp.com → Audience → Signup forms → Embedded forms
+  // 2. Copy the form action URL — it looks like:
+  //    https://yourdomain.us21.list-manage.com/subscribe/post?u=XXXXXXXX&amp;id=YYYYYYYY
+  // 3. From that URL, fill in:
+  //    MC_DC   = the part before .list-manage.com  (e.g. "us21")
+  //    MC_U    = the u= value                      (e.g. "abc123def456")
+  //    MC_ID   = the id= value                     (e.g. "aa11bb22cc")
+  // ─────────────────────────────────────────────
+  const MC_DC = 'us21';           // ← your datacenter
+  const MC_U  = 'YOUR_U_VALUE';   // ← your u= param
+  const MC_ID = 'YOUR_LIST_ID';   // ← your id= param
+  // ─────────────────────────────────────────────
+
   // Scroll reveal
   const reveals = document.querySelectorAll('.reveal');
-  const observer = new IntersectionObserver((entries) => {
+  const revealObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry, i) => {
       if (entry.isIntersecting) {
         setTimeout(() => entry.target.classList.add('visible'), i * 60);
-        observer.unobserve(entry.target);
+        revealObserver.unobserve(entry.target);
       }
     });
   }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-  reveals.forEach(el => observer.observe(el));
+  reveals.forEach(el => revealObserver.observe(el));
 
-  // Waitlist counter (simulate growth)
+  // Waitlist counter
   let baseCount = 247;
   function animateCount() {
     const el = document.getElementById('count');
     let current = 0;
-    const target = baseCount;
-    const step = Math.ceil(target / 60);
+    const step = Math.ceil(baseCount / 60);
     const timer = setInterval(() => {
-      current = Math.min(current + step, target);
+      current = Math.min(current + step, baseCount);
       el.textContent = current;
-      if (current >= target) clearInterval(timer);
+      if (current >= baseCount) clearInterval(timer);
     }, 20);
   }
-
   const countEl = document.getElementById('count');
   const countObserver = new IntersectionObserver((entries) => {
     if (entries[0].isIntersecting) { animateCount(); countObserver.unobserve(countEl); }
   }, { threshold: 0.5 });
   countObserver.observe(countEl);
 
-  // Waitlist submit
-  function handleWaitlist(e) {
-    e.preventDefault();
-    const email = document.getElementById('email-input').value;
+  // ── Mailchimp JSONP subscribe ──
+  function setLoading(on) {
+    document.getElementById('btn-label').style.display  = on ? 'none'         : 'inline';
+    document.getElementById('btn-spinner').style.display = on ? 'inline-block' : 'none';
+    document.getElementById('submit-btn').disabled = on;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('error-msg').style.display = 'none';
+  }
+
+  function showSuccess() {
     const form = document.getElementById('form-container');
     const success = document.getElementById('success-msg');
-    const countEl = document.getElementById('count');
-
-    // Store in localStorage as a simple waitlist
-    const list = JSON.parse(localStorage.getItem('vela_waitlist') || '[]');
-    if (!list.includes(email)) {
-      list.push(email);
-      localStorage.setItem('vela_waitlist', JSON.stringify(list));
-      baseCount = 247 + list.length;
-      countEl.textContent = baseCount;
-    }
-
     form.style.opacity = '0';
     form.style.transform = 'translateY(-8px)';
     form.style.transition = 'all 0.3s ease';
     setTimeout(() => {
       form.style.display = 'none';
       success.classList.add('show', 'visible');
+      baseCount++;
+      document.getElementById('count').textContent = baseCount;
     }, 300);
   }
 
-  // Load existing count
-  window.addEventListener('load', () => {
-    const list = JSON.parse(localStorage.getItem('vela_waitlist') || '[]');
-    baseCount = 247 + list.length;
-  });
+  function handleWaitlist(e) {
+    e.preventDefault();
+    hideError();
+
+    const email = document.getElementById('email-input').value.trim();
+    if (!email) return;
+
+    // Warn if placeholder values haven't been replaced
+    if (MC_U === 'YOUR_U_VALUE' || MC_ID === 'YOUR_LIST_ID') {
+      showError('⚠ Mailchimp not configured yet. Open the HTML file and fill in MC_U, MC_ID, and MC_DC.');
+      return;
+    }
+
+    setLoading(true);
+
+    // Mailchimp's public JSONP endpoint — same one their own embeds use.
+    // No API key required; uses your audience's public form credentials.
+    const url = `https://${MC_DC}.list-manage.com/subscribe/post-json`
+              + `?u=${MC_U}&id=${MC_ID}&EMAIL=${encodeURIComponent(email)}&c=mcCallback`;
+
+    // Inject a <script> tag to fire the JSONP request
+    const script = document.createElement('script');
+    script.src = url;
+    document.body.appendChild(script);
+
+    // Timeout fallback (10s)
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      showError('Request timed out. Please try again.');
+      document.body.removeChild(script);
+    }, 10000);
+
+    // Mailchimp calls window.mcCallback with the result
+    window.mcCallback = function(data) {
+      clearTimeout(timeout);
+      setLoading(false);
+      try { document.body.removeChild(script); } catch(_) {}
+
+      if (data.result === 'success') {
+        showSuccess();
+      } else {
+        // Mailchimp returns HTML in the msg field; strip tags for display
+        const clean = data.msg.replace(/<[^>]+>/g, '').replace(/^\d+ - /, '');
+        showError(clean || 'Something went wrong. Please try again.');
+      }
+    };
+  }
+
+  // Spinner CSS
+  const style = document.createElement('style');
+  style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+  document.head.appendChild(style);
 </script>
 </body>
 </html>
